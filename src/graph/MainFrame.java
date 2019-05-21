@@ -50,8 +50,6 @@ import javax.swing.text.NumberFormatter;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 
-import ai.Link;
-import ai.Room;
 import ui.HintJTextField;
 
 public class MainFrame extends JFrame {
