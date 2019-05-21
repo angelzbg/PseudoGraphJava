@@ -50,6 +50,8 @@ import javax.swing.text.NumberFormatter;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 
+import ai.Link;
+import ai.Room;
 import ui.HintJTextField;
 
 public class MainFrame extends JFrame {
@@ -63,8 +65,8 @@ public class MainFrame extends JFrame {
 	// Wrapper
 	JPanel panelWrapper = new JPanel();
 	
-	// Background Panel
-	JPanel panelContent = new JPanel();
+	// Sketch Panel
+	JPanel panelSketch = new JPanel();
 	
 	// JLabels to open the menus
 	JLabel labelOpenLeftMenu, labelOpenTopMenu, labelOpenConsole, labelOpenSettings, labelOpenTable;
@@ -439,11 +441,11 @@ public class MainFrame extends JFrame {
 		//--
 		
 		// panelContent at the end so it stays behind all other UI components
-		panelContent.setBackground(Color.decode("#99d4ff"));
-		panelContent.setSize(side, side);
-		panelWrapper.add(panelContent);
-		panelContent.setLocation(0, 0);
-		panelContent.setLayout(null);
+		panelSketch.setBackground(Color.decode("#99d4ff"));
+		panelSketch.setSize(side, side);
+		panelWrapper.add(panelSketch);
+		panelSketch.setLocation(0, 0);
+		panelSketch.setLayout(null);
 		
 		//Open the window for the user
 		this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE); // the user is going to close it through JOptionPane on confirmation
@@ -481,6 +483,7 @@ public class MainFrame extends JFrame {
 		labelAddRoom.addMouseListener(mouseAdapter_Confirm);
 		labelAddLink.addMouseListener(mouseAdapter_Confirm);
 		labelSearch.addMouseListener(mouseAdapter_Confirm);
+		labelGoToFloor.addMouseListener(mouseAdapter_Confirm);
 		
 		openData("src/example.blegh");
 	} // Constructor [  END  ]
@@ -617,7 +620,6 @@ public class MainFrame extends JFrame {
     			tryToAddLink();
     		}
     		else if(labelSearch == source) {
-    			
     			String fromRoom = JTF_searchFrom.getText().trim(), toRoom = JTF_searchTo.getText().trim();
     			
     			if(fromRoom.isEmpty() || toRoom.isEmpty()) {
@@ -646,6 +648,9 @@ public class MainFrame extends JFrame {
     			} else { // lifts prior
     				searchPrioriryLift(fromRoom, toRoom);
     			}
+    		}
+    		else if(labelGoToFloor == source) {
+    			updateSketch(Integer.parseInt(JCB_floorChooser.getSelectedItem().toString()));
     		}
         }
     	@Override
@@ -905,12 +910,14 @@ public class MainFrame extends JFrame {
 			grap_by_floor[room.floor].addRoom(room);
 		}
 		
-		// Updating the floorChooser
-		String[] floors = new String[grap_by_floor.length-1];
-		for(int i=0; i<floors.length; i++) {
-			floors[i] = new String( (i+1)+"" );
+		if(JCB_floorChooser.getItemCount() != grap_by_floor.length-1) {
+			// Updating the floorChooser
+			String[] floors = new String[grap_by_floor.length-1];
+			for(int i=0; i<floors.length; i++) {
+				floors[i] = new String( (i+1)+"" );
+			}
+			JCB_floorChooser.setModel(new DefaultComboBoxModel(floors));
 		}
-		JCB_floorChooser.setModel(new DefaultComboBoxModel(floors));
 	} // loadGraphByFloors() [  END  ]
 	
 	/* TABLE UPDATES [ START ] */
@@ -1104,10 +1111,9 @@ public class MainFrame extends JFrame {
 		Link[] currentLinks = new Link[currentRoom.links.size()];
 		currentLinks = currentRoom.links.toArray(currentLinks);
 		
-		int n = currentLinks.length;  
-        Link temp = null;  
-        for(int i=0; i < n; i++) { // TURBO LINK SORT (clumsy bubble sort to sort the linked rooms by coords)
-        	for(int j=1; j < (n-i); j++) {
+        /*Link temp = null;  
+        for(int i=0; i < currentLinks.length; i++) { // TURBO LINK SORT (clumsy bubble sort to sort the linked rooms by coords)
+        	for(int j=1; j < (currentLinks.length-i); j++) {
         		Room r1 = graph.getRoom(currentLinks[j-1].toRoomName);
         		Room r2 = graph.getRoom(currentLinks[j].toRoomName);
         		
@@ -1171,9 +1177,25 @@ public class MainFrame extends JFrame {
         		} // else r1.floor == endRoom.floor -> stay on same indexes
         		
         	}  
+        }*/
+		
+        Link temp = null;  
+        for(int i=0; i < currentLinks.length; i++) {
+        	if(isPathFound) return;
+        	for(int j=1; j < (currentLinks.length-i); j++) {
+        		Room r1 = graph.getRoom(currentLinks[j-1].toRoomName);
+        		Room r2 = graph.getRoom(currentLinks[j].toRoomName);
+        		
+        		// always searching the closest room -> bs -> makes no sense to work and indeed doesn't -> you CAN NOT find the path with the least rooms visited by choosing the closest
+        		if( Math.sqrt((currentRoom.x-r1.x)*(currentRoom.x-r1.x)+(currentRoom.y-r1.y)*(currentRoom.y-r1.y)) > Math.sqrt((currentRoom.x-r2.x)*(currentRoom.x-r2.x)+(currentRoom.y-r2.y)*(currentRoom.y-r2.y)) ) {
+        			temp = currentLinks[j-1];
+        			currentLinks[j-1] = currentLinks[j];
+        			currentLinks[j] = temp;
+        		}
+        	}  
         }
         
-        for(int i=0; i<n; i++) {
+        for(int i=0; i<currentLinks.length; i++) {
         	if(isPathFound) return; // little optimization
         	if(currentLinks[i].toRoomName.equals(endRoom.name)) {
         		log(" + Observing room [ " + currentRoom.name + " ]", 1);
@@ -1286,11 +1308,11 @@ public class MainFrame extends JFrame {
 	} // searchPrioriryLiftExtend() [  END  ]
 	
 	private void updateSketch(int chosenFloor) { // updateSketch() [ START ]
-		panelContent.removeAll();
+		panelSketch.removeAll();
 		loadGraphByFloors();
 		
 		ArrayList<Room> roomsOnFloor = new ArrayList<Room>();
-		int min_X = Integer.MAX_VALUE, max_X = Integer.MIN_VALUE, min_Y = Integer.MAX_VALUE, max_Y = Integer.MIN_VALUE;
+		int max_X = Integer.MIN_VALUE, max_Y = Integer.MIN_VALUE;
 		
 		Set entries = grap_by_floor[chosenFloor].myGraph.entrySet();
 		Iterator entriesIterator = entries.iterator();
@@ -1300,33 +1322,54 @@ public class MainFrame extends JFrame {
 			Room room = (Room) mapping.getValue();
 			roomsOnFloor.add(room);
 			if(room.x > max_X) max_X = room.x;
-			if(room.x < min_X) min_X = room.x;
 			if(room.y > max_Y) max_Y = room.y;
-			if(room.y < min_Y) min_Y = room.y;
 		}
 		
-		double scale = 1.00, sketchMaxSize = 0;
+		double scale = 0;
+		int fixedSide = side-side_div_15*4;
 		
-		if(max_X > max_Y) { // width > height
-			sketchMaxSize = max_X-min_X;
-		} else { // height > width || square
-			sketchMaxSize = max_Y-min_Y;
+		if(fixedSide > max_X || fixedSide > max_Y) {
+			
+			if(max_X > max_Y) {
+				scale = fixedSide*1.00/max_X*1.00;
+			} else {
+				scale = fixedSide*1.00/max_Y*1.00;
+			}
+			
+		} else if(fixedSide < max_X || fixedSide < max_Y) {
+			
+			if(max_X > max_Y) {
+				scale = max_X*1.00/fixedSide*1.00;
+			} else {
+				scale = max_Y*1.00/fixedSide*1.00;
+			}
+			
 		}
 		
-		scale = side/sketchMaxSize;
+		
 		
 		for(Room r : roomsOnFloor) {
 			JLabel labelRoom = null;
 			if(r.type.equals("room")) {
-				labelRoom = new JLabel("<html><font color='black'>" + r.name + "</font><br><font color='red'>R</font></html>", SwingConstants.CENTER);
+				labelRoom = new JLabel(new ImageIcon(new ImageIcon("src/icon_sketch_room.png").getImage().getScaledInstance(side_div_15, side_div_15, Image.SCALE_DEFAULT)));
+				labelRoom.setText("<html><center><font color='black'>" + r.name + "</font><br><font color='red'>R</font></center></html>");
 			} else { // transit
-				labelRoom = new JLabel("<html><font color='black'>" + r.name + "</font><br><font color='yellow'>T</font></html>", SwingConstants.CENTER);
+				labelRoom = new JLabel(new ImageIcon(new ImageIcon("src/icon_sketch_transit.png").getImage().getScaledInstance(side_div_15, side_div_15, Image.SCALE_DEFAULT)));
+				labelRoom.setText("<html><center><font color='black'>" + r.name + "</font><br><font color='green'>T</font></center></html>");
 			}
-			labelRoom.setSize((int)scale*5, (int)scale*5);
-			panelContent.add(labelRoom);
-			double baseX = r.x*scale, baseY = r.y*scale;
-			double placeX = baseX, placeY = side*1.00-r.y*scale;
-			labelRoom.setLocation((int)baseX, (int)placeY);
+			labelRoom.setHorizontalTextPosition(JLabel.CENTER);
+			labelRoom.setSize(side_div_15, side_div_15);
+			panelSketch.add(labelRoom);
+			
+			if(fixedSide > max_X || fixedSide > max_Y) {
+				
+				labelRoom.setLocation((int)(r.x*scale+side_div_15*2-side_div_15/2), (int)(side-side_div_15*2-r.y*scale-side_div_15/2));
+				
+			} else if(fixedSide < max_X || fixedSide < max_Y) {
+				
+				labelRoom.setLocation((int)(r.x/scale+side_div_15*2-side_div_15/2), (int)(side-side_div_15*2-r.y/scale-side_div_15/2));
+				
+			}
 		}
 		
 		this.revalidate();
