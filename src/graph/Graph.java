@@ -41,13 +41,4 @@ public HashMap<String, Room> myGraph = new HashMap<>();
 		return myGraph.containsKey(name);
 	}
 	
-	public ArrayList<Room> getLinkedRooms(String name){
-		ArrayList<Room> linkedRooms = new ArrayList<>();
-		Room room = myGraph.get(name);
-		for(Link l : room.links) {
-			linkedRooms.add(myGraph.get(l.toRoomName));
-		}
-		return linkedRooms;
-	}
-	
 }

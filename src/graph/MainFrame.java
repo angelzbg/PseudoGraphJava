@@ -25,8 +25,10 @@ import java.util.Scanner;
 import java.util.Set;
 
 import javax.swing.BorderFactory;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.ImageIcon;
 import javax.swing.JComboBox;
+import javax.swing.JFileChooser;
 import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -36,7 +38,10 @@ import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.JTextPane;
+import javax.swing.Popup;
+import javax.swing.PopupFactory;
 import javax.swing.SwingConstants;
+import javax.swing.filechooser.FileSystemView;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.text.BadLocationException;
 import javax.swing.text.Document;
@@ -203,8 +208,9 @@ public class MainFrame extends JFrame {
 		panelFileMenu_Body.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 1, Color.BLACK));
 		panelFileMenu_Body.setLayout(null);
 		
-		panelFileMenu_Container.setSize(panelFileMenu_Body.getWidth(), panelFileMenu_Body.getHeight()); // later must be resized according to how many components it has
+		panelFileMenu_Container.setSize(panelFileMenu_Body.getWidth(), 0); // later must be resized according to how many components it has
 		panelFileMenu_Container.setBackground(lightGreen);
+		panelFileMenu_Container.setLayout(null);
 		
 		JSP_ScrollerContainer.setSize(panelFileMenu_Body.getWidth(), panelFileMenu_Body.getHeight());
 		panelFileMenu_Body.add(JSP_ScrollerContainer);
@@ -472,6 +478,7 @@ public class MainFrame extends JFrame {
 		labelSettingsBack.addMouseListener(mouseAdapter_Open_Close_Menus);
 		labelShowRoomsInTable.addMouseListener(mouseAdapter_Open_Close_Menus);
 		labelShowLinksInTable.addMouseListener(mouseAdapter_Open_Close_Menus);
+		labelFileMenu_Open.addMouseListener(mouseAdapter_Open_Close_Menus);
 		
 		labelAddRoom.addMouseListener(mouseAdapter_Confirm);
 		labelAddLink.addMouseListener(mouseAdapter_Confirm);
@@ -578,6 +585,16 @@ public class MainFrame extends JFrame {
     		else if(labelShowLinksInTable == source) { // update Table with links
     			updateTableWithLinks();
     		}
+    		else if(labelFileMenu_Open == source) { // show file chooser
+    			JFileChooser jfc = new JFileChooser(FileSystemView.getFileSystemView().getHomeDirectory());
+
+    			int returnValue = jfc.showOpenDialog(null);
+
+    			if (returnValue == JFileChooser.APPROVE_OPTION) {
+    				File selectedFile = jfc.getSelectedFile();
+    				openData(selectedFile.getAbsolutePath());
+    			}
+    		}
         }
     	@Override
         public void mouseEntered(MouseEvent e) {
@@ -602,13 +619,34 @@ public class MainFrame extends JFrame {
     			tryToAddLink();
     		}
     		else if(labelSearch == source) {
+    			
+    			String fromRoom = JTF_searchFrom.getText().trim(), toRoom = JTF_searchTo.getText().trim();
+    			
+    			if(fromRoom.isEmpty() || toRoom.isEmpty()) {
+    				log("! Please, fill all the fields.", 2);
+    				return;
+    			}
+    			if(!graph.containsRoom(fromRoom)) {
+    				log("! Room [ " + fromRoom + " ] doesn't exist.", 2);
+    				return;
+    			}
+    			if(!graph.containsRoom(toRoom)) {
+    				log("! Room [ " + toRoom + " ] doesn't exist.", 2);
+    				return;
+    			}
+    			
+    			if(fromRoom.equals(toRoom)) {
+    				log("! The names of the rooms entered are the same.", 2);
+    				return;
+    			}
+    			
     			String searchChoice = JCB_searchType.getSelectedItem().toString();
     			if(searchChoice == "no stairs") { // no stairs
-    				searchWithoutStairs();
+    				searchWithoutStairs(fromRoom, toRoom);
     			} else if(searchChoice == "by coords") { // by coords
-    				//searchByCoords();
+    				searchByCoords(fromRoom, toRoom);
     			} else { // lifts prior
-    				//searchLiftsPriority();
+    				searchPrioriryLift(fromRoom, toRoom);
     			}
     		}
         }
@@ -654,7 +692,50 @@ public class MainFrame extends JFrame {
         }
 	};
 	
+	private Popup popup;
+	private HashMap<String, Boolean> listLoadedFiles = new HashMap<String, Boolean>(); // max 13 files because im too lazy to fix the scroller over the panel with null layout
+	private int lastFileinMenu_Y = 0;
 	private void openData(String pathToFile) { // openData() [ START ]
+		
+		File file = new File(pathToFile);
+		if(!file.exists()) {
+			log("! File [ " + pathToFile + " ] doesn't exist.", 2);
+			return;
+		}
+		
+		if(!listLoadedFiles.containsKey(pathToFile) && listLoadedFiles.size() < 13) {
+			listLoadedFiles.put(pathToFile, true);
+			// adding button in the menu
+			JLabel fileLabel = new JLabel(new ImageIcon(new ImageIcon("src/icon_file.png").getImage().getScaledInstance(side_div_15, side_div_15, Image.SCALE_DEFAULT)));
+			fileLabel.setSize(side_div_15, side_div_15);
+			fileLabel.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+			panelFileMenu_Container.setSize(side_div_15, lastFileinMenu_Y+side_div_15);
+			panelFileMenu_Container.add(fileLabel);
+			fileLabel.setLocation(0, lastFileinMenu_Y);
+			lastFileinMenu_Y+=side_div_15;
+
+			fileLabel.addMouseListener(new MouseAdapter() {
+				@Override
+		        public void mouseClicked(MouseEvent e) {
+					openData(pathToFile);
+		        }
+		    	@Override
+		        public void mouseEntered(MouseEvent e) {
+		            super.mouseEntered(e);
+		            JLabel text = new JLabel(pathToFile);
+	                popup = PopupFactory.getSharedInstance().getPopup(e.getComponent(), text, e.getXOnScreen(), e.getYOnScreen());
+	                popup.show();
+		        }
+		        @Override
+		        public void mouseExited(MouseEvent e) {
+		            super.mouseExited(e); 
+		            if (popup != null) {
+	                    popup.hide();
+	                }
+		        }
+			});
+		}
+		
 		log("> Loading: " + pathToFile, 1);
 		file_path = pathToFile;
 		
@@ -662,13 +743,12 @@ public class MainFrame extends JFrame {
 		
 		ArrayList<String[]> allLines = new ArrayList<String[]>();
 		
-		try (Scanner scanner = new Scanner( new File(pathToFile), "UTF-8" )) {
+		try (Scanner scanner = new Scanner( file, "UTF-8" )) {
 			while(scanner.hasNext()) {
-				String text = scanner.useDelimiter(";").next(); // reading the line to ';'
+				String text = scanner.useDelimiter(";").next(); // reading to ';'
 			    allLines.add(text.replace(System.lineSeparator(), "").split(",")); // removing the line separator if existing and splitting the line on ','
 			}
 		} catch(Exception e) {
-			//e.printStackTrace();
 			log(e.getMessage(), 2);
 		}
 		
@@ -787,7 +867,7 @@ public class MainFrame extends JFrame {
 			if(current_floor < min_floor) min_floor = current_floor;
 			log("* Room added successfully [ " + roomName + " ].", 3);
 			updateTableWithRooms();
-			//updateSketch();
+			//updateSketch(); <-- loadGraphByFloors();
 		}
 	} // tryToAddRoom() [  END  ]
 	
@@ -838,6 +918,11 @@ public class MainFrame extends JFrame {
 			if(grap_by_floor[room.floor] == null) grap_by_floor[room.floor] = new Graph();
 			grap_by_floor[room.floor].addRoom(room);
 		}
+		String[] floors = new String[grap_by_floor.length-1];
+		for(int i=0; i<floors.length; i++) {
+			floors[i] = new String( (i+1)+"" );
+		}
+		JCB_floorChooser.setModel(new DefaultComboBoxModel(floors));
 	} // loadGraphByFloors() [  END  ]
 	
 	private void updateTableWithRooms() {
@@ -898,35 +983,16 @@ public class MainFrame extends JFrame {
 		MainFrame.this.repaint();
 	}
 	
-	private void searchWithoutStairs() { // searchWithoutStairs() [ START ]
-		String fromRoom = JTF_searchFrom.getText().trim(), toRoom = JTF_searchTo.getText().trim();
-		
-		if(fromRoom.isEmpty() || toRoom.isEmpty()) {
-			log("! Please, fill all the fields.", 2);
-			return;
-		}
-		if(!graph.containsRoom(fromRoom)) {
-			log("! Room [ " + fromRoom + " ] doesn't exist.", 2);
-			return;
-		}
-		if(!graph.containsRoom(toRoom)) {
-			log("! Room [ " + toRoom + " ] doesn't exist.", 2);
-			return;
-		}
-		
-		if(fromRoom.equals(toRoom)) {
-			log("! The names of the rooms entered are the same.", 2);
-			return;
-		}
+	private void searchWithoutStairs(String fromRoom, String toRoom) { // searchWithoutStairs() [ START ]
 		
 		Room startRoom = graph.getRoom(fromRoom), endRoom = graph.getRoom(toRoom);
 		
 		Room currentRoom = startRoom;
-		log("> Searching started [ Without Stairs ]", 1);
+		log("@ Searching started [ Without Stairs ]", 1);
 		searchWithoutStairsExtend(currentRoom, null, endRoom.name);
 		
 		if(isPathFound) {
-			log("* There is a path without stairs from " + startRoom.name + " to " + endRoom.name + ".", 4);
+			log("* There is path without stairs from " + startRoom.name + " to " + endRoom.name + ".", 4);
 			
 			ArrayList<String> path = new ArrayList<String>();
 			ArrayList<Integer> costs = new ArrayList<Integer>();
@@ -944,7 +1010,7 @@ public class MainFrame extends JFrame {
 				name = linkSearch.from;
 			}
 			path.add(startRoom.name);
-			String pathString = "";
+			String pathString = "| ";
 			for(int i= path.size()-1; i>-1; i--) {
 				pathString+=path.get(i) + " | ";
 			}
@@ -954,20 +1020,20 @@ public class MainFrame extends JFrame {
 			for(int i= path.size()-1; i>0; i--) {
 				log("- From [ " + path.get(i) + " ] to [ " + path.get(i-1) + " ] : " + costs.get(costIndex++), 1);
 			}
-			log("* Full cost = " + costCounter + " | Walk = " + walk + " | Lift = " + lift, 4);
+			log("* [ Full cost x" + costCounter + " ] [ Walk x" + walk + " ] [ Lift x" + lift + " ]", 4);
 		} else {
 			log("* There is no path without stairs from " + startRoom.name + " to " + endRoom.name + ".", 2);
 		}
-		log("< Search finished [ Without Stairs ]", 1);
+		log("@ Search finished [ Without Stairs ]", 1);
 		
-		//Cleaning from the previous search
+		//Cleaning the current search
 		flagged = new HashMap<String, Boolean>();
 		comingFrom = new HashMap<String, LinkSearch>();
 		isPathFound = false;
 		
 	} // searchWithoutStairs() [  END  ]
-	private void searchWithoutStairsExtend(Room currentRoom, Link comingFromLink, String endRoomName) {
-		if(isPathFound) return;
+	private void searchWithoutStairsExtend(Room currentRoom, Link comingFromLink, String endRoomName) { // searchWithoutStairsExtend() [ START ]
+		if(isPathFound) return; // not sure if this prevents anything anymore
 		
 		log(" + Observing room [ " + currentRoom.name + " ]", 1);
 		
@@ -985,6 +1051,244 @@ public class MainFrame extends JFrame {
 				if(!flagged.containsKey(l.toRoomName)) searchWithoutStairsExtend(graph.getRoom(l.toRoomName), l, endRoomName);
 			}
 		}
+	} // searchWithoutStairsExtend() [  END  ]
+	
+	private void searchByCoords(String fromRoom, String toRoom) {
+		
+		Room startRoom = graph.getRoom(fromRoom), endRoom = graph.getRoom(toRoom);
+		
+		Room currentRoom = startRoom;
+		log("@ Searching started [ By Coords ]", 1);
+		searchByCoordsExtend(currentRoom, null, endRoom);
+		
+		if(isPathFound) {
+			log("* There is path from " + startRoom.name + " to " + endRoom.name + ".", 4);
+			
+			ArrayList<String> path = new ArrayList<String>();
+			ArrayList<Integer> costs = new ArrayList<Integer>();
+			int costCounter = 0, walk=0, climb=0, lift=0;
+			
+			String name = endRoom.name;
+			while(!name.equals(startRoom.name)) {
+				path.add(name);
+				LinkSearch linkSearch = comingFrom.get(name);
+				if(linkSearch.type.equals("walk")) walk++;
+				else if(linkSearch.type.equals("climb")) climb++;
+				else lift++;
+				costs.add(linkSearch.cost);
+				costCounter+=linkSearch.cost;
+				name = linkSearch.from;
+			}
+			path.add(startRoom.name);
+			String pathString = "| ";
+			for(int i= path.size()-1; i>-1; i--) { // reverse it to to show it in the right order
+				pathString+=path.get(i) + " | ";
+			}
+			log("* Full path: " + pathString, 4);
+			int costIndex = 0;
+			log("* Cost:", 1);
+			for(int i= path.size()-1; i>0; i--) {
+				log("- From [ " + path.get(i) + " ] to [ " + path.get(i-1) + " ] : " + costs.get(costIndex++), 1);
+			}
+			log("* [ Full cost = " + costCounter + " ] [ Walk x" + walk + " ] [ Stair x" + climb + " ] [ Lift x" + lift + " ]", 4);
+		} else {
+			log("* There is no path  from " + startRoom.name + " to " + endRoom.name + ".", 2);
+		}
+		log("@ Search finished [ By Coords ]", 1);
+		
+		// Clear the current search
+		flagged = new HashMap<String, Boolean>();
+		comingFrom = new HashMap<String, LinkSearch>();
+		isPathFound = false;
+	}
+	private void searchByCoordsExtend(Room currentRoom, Link comingFromLink, Room endRoom) { // с надеждата да не направи StackOverflow
+		if(isPathFound) return; // not sure if this prevents anything anymore
+		
+		log(" + Observing room [ " + currentRoom.name + " ]", 1);
+		
+		if(comingFromLink != null) comingFrom.put(currentRoom.name, new LinkSearch(comingFromLink.fromRoomName, comingFromLink.cost, comingFromLink.type));
+		flagged.put(currentRoom.name, true);
+		
+		Link[] currentLinks = new Link[currentRoom.links.size()];
+		currentLinks = currentRoom.links.toArray(currentLinks);
+		
+		int n = currentLinks.length;  
+        Link temp = null;  
+        for(int i=0; i < n; i++) { // TURBO LINK SORT (clumsy bubble sort to sort the linked rooms by coords)
+        	for(int j=1; j < (n-i); j++) {
+        		Room r1 = graph.getRoom(currentLinks[j-1].toRoomName);
+        		Room r2 = graph.getRoom(currentLinks[j].toRoomName);
+        		
+        		// if the linked room is on the same floor but not on the floor where is the endRoom we must check it's lenght to the current room
+        		// if on the same floor as endRoom -> check lenght to endRoom
+        		// using formula for vector lenght -> same as hypotenuse formula - 1:1
+        		
+        		// we must know the building architecture to make an optimal solution otherwise we must write really complicated code to make this task possible for a random building.
+        		if(r1.floor == endRoom.floor && r2.floor == endRoom.floor) { // the rooms are on the same floor
+        			if( Math.sqrt((endRoom.x-r1.x)*(endRoom.x-r1.x)+(endRoom.y-r1.y)*(endRoom.y-r1.y)) > Math.sqrt((endRoom.x-r2.x)*(endRoom.x-r2.x)+(endRoom.y-r2.y)*(endRoom.y-r2.y)) ) {
+            			temp = currentLinks[j-1];
+            			currentLinks[j-1] = currentLinks[j];
+            			currentLinks[j] = temp;
+            		}
+        		}
+        		else if(r2.floor == endRoom.floor) { // room 2 is on the same room as endRoom
+        			temp = currentLinks[j-1];
+        			currentLinks[j-1] = currentLinks[j];
+        			currentLinks[j] = temp;
+        		}
+        		else if(r1.floor != endRoom.floor) { // both rooms are not on the same floor as endRoom
+        			if(currentRoom.floor > endRoom.floor && r1.floor < currentRoom.floor && r1.floor < r2.floor) {
+        				// stay on this index
+        			}
+        			else if(currentRoom.floor > endRoom.floor && r2.floor < currentRoom.floor && r2.floor < r1.floor) {
+        				temp = currentLinks[j-1];
+            			currentLinks[j-1] = currentLinks[j];
+            			currentLinks[j] = temp;
+        			}
+        			else if(currentRoom.floor < endRoom.floor && r1.floor > currentRoom.floor && r1.floor > r2.floor) {
+        				// stay on this index
+        			}
+        			else if(currentRoom.floor < endRoom.floor && r2.floor > currentRoom.floor && r2.floor > r1.floor) {
+        				temp = currentLinks[j-1];
+            			currentLinks[j-1] = currentLinks[j];
+            			currentLinks[j] = temp;
+        			}
+        			else if(currentRoom.floor > endRoom.floor && r1.floor == currentRoom.floor && r2.floor > currentRoom.floor) {
+        				// stay on this index
+        			}
+        			else if(currentRoom.floor > endRoom.floor && r2.floor == currentRoom.floor && r1.floor > currentRoom.floor) {
+        				temp = currentLinks[j-1];
+            			currentLinks[j-1] = currentLinks[j];
+            			currentLinks[j] = temp;
+        			}
+        			else if(currentRoom.floor < endRoom.floor && r1.floor == currentRoom.floor && r2.floor < currentRoom.floor) {
+        				// stay on this index
+        			}
+        			else if(currentRoom.floor < endRoom.floor && r2.floor == currentRoom.floor && r1.floor < currentRoom.floor) {
+        				temp = currentLinks[j-1];
+            			currentLinks[j-1] = currentLinks[j];
+            			currentLinks[j] = temp;
+        			}
+        			else { // basic sort to the closest room
+        				if( Math.sqrt((currentRoom.x-r1.x)*(currentRoom.x-r1.x)+(currentRoom.y-r1.y)*(currentRoom.y-r1.y)) > Math.sqrt((currentRoom.x-r2.x)*(currentRoom.x-r2.x)+(currentRoom.y-r2.y)*(currentRoom.y-r2.y)) ) {
+                			temp = currentLinks[j-1];
+                			currentLinks[j-1] = currentLinks[j];
+                			currentLinks[j] = temp;
+                		}
+        			}
+        		} // else r1.floor == endRoom.floor -> stay on same indexes
+        		
+        	}  
+        }
+        
+        for(int i=0; i<n; i++) {
+        	if(isPathFound) return; // little optimization
+        	if(currentLinks[i].toRoomName.equals(endRoom.name)) {
+        		log(" + Observing room [ " + currentRoom.name + " ]", 1);
+				isPathFound = true;
+				comingFrom.put(endRoom.name, new LinkSearch(currentRoom.name, currentLinks[i].cost, currentLinks[i].type));
+				return;
+			}
+			if(!flagged.containsKey(currentLinks[i].toRoomName)) searchByCoordsExtend(graph.getRoom(currentLinks[i].toRoomName), currentLinks[i], endRoom);
+        }
+	}
+	
+	private void searchPrioriryLift(String fromRoom, String toRoom) {
+		Room startRoom = graph.getRoom(fromRoom), endRoom = graph.getRoom(toRoom);
+		
+		Room currentRoom = startRoom;
+		log("@ Searching started [ Prioriry Lift ]", 1);
+		searchPrioriryLiftExtend(currentRoom, null, endRoom.name);
+		
+		if(isPathFound) {
+			log("* There is path from " + startRoom.name + " to " + endRoom.name + ".", 4);
+			
+			ArrayList<String> path = new ArrayList<String>();
+			ArrayList<Integer> costs = new ArrayList<Integer>();
+			int costCounter = 0, walk=0, climb=0, lift=0;
+			
+			String name = endRoom.name;
+			while(!name.equals(startRoom.name)) {
+				path.add(name);
+				LinkSearch linkSearch = comingFrom.get(name);
+				if(linkSearch.type.equals("walk")) walk++;
+				else if(linkSearch.type.equals("climb")) climb++;
+				else lift++;
+				costs.add(linkSearch.cost);
+				costCounter+=linkSearch.cost;
+				name = linkSearch.from;
+			}
+			path.add(startRoom.name);
+			String pathString = "| ";
+			for(int i= path.size()-1; i>-1; i--) { // reverse it to to show it in the right order
+				pathString+=path.get(i) + " | ";
+			}
+			log("* Full path: " + pathString, 4);
+			int costIndex = 0;
+			log("* Cost:", 1);
+			for(int i= path.size()-1; i>0; i--) {
+				log("- From [ " + path.get(i) + " ] to [ " + path.get(i-1) + " ] : " + costs.get(costIndex++), 1);
+			}
+			log("* [ Full cost = " + costCounter + " ] [ Walk x" + walk + " ] [ Stair x" + climb + " ] [ Lift x" + lift + " ]", 4);
+		} else {
+			log("* There is no path  from " + startRoom.name + " to " + endRoom.name + ".", 2);
+		}
+		log("@ Search finished [ Prioriry Lift ]", 1);;
+		
+		// Clear the current search
+		flagged = new HashMap<String, Boolean>();
+		comingFrom = new HashMap<String, LinkSearch>();
+		isPathFound = false;
+	}
+	
+	private void searchPrioriryLiftExtend(Room currentRoom, Link comingFromLink, String endRoomName) {
+		if(isPathFound) return; // not sure if does anything at this point
+		
+		log(" + Observing room [ " + currentRoom.name + " ]", 1);
+		
+		if(comingFromLink != null) comingFrom.put(currentRoom.name, new LinkSearch(comingFromLink.fromRoomName, comingFromLink.cost, comingFromLink.type));
+		flagged.put(currentRoom.name, true);
+		
+		ArrayList<Link> links = new ArrayList<Link>();
+		for(Link l : currentRoom.links) { // ordering the links -> lifts
+			if(l.type.equals("lift")) {
+				links.add(0, l); // going first in the list
+			} else links.add(l); // adding it behind
+		}
+		
+		ArrayList<Link> skippedStairs = new ArrayList<Link>();
+		for(Link l : links) { // работим с подредените линкове
+			if(isPathFound) return;
+			int cost = l.cost;
+			if(l.type.equals("climb")) {
+				cost *= 2; 
+			}
+			
+			if(l.toRoomName.equals(endRoomName)) {
+				log(" + Observing room [ " + currentRoom.name + " ]", 1);
+				isPathFound = true;
+				comingFrom.put(endRoomName, new LinkSearch(currentRoom.name, cost, l.type));
+				return;
+			}
+			
+			if(l.type.equals("climb")) skippedStairs.add(l); // we leave the stairs always for last (last resort)
+			else if(!flagged.containsKey(l.toRoomName)) searchPrioriryLiftExtend(graph.getRoom(l.toRoomName), l, endRoomName);
+		}
+		
+		for(Link l: skippedStairs) {
+			if(isPathFound) return;
+			int cost = l.cost*2;
+			
+			if(l.toRoomName.equals(endRoomName)) {
+				log(" + Observing room [ " + currentRoom.name + " ]", 1);
+				isPathFound = true;
+				comingFrom.put(endRoomName, new LinkSearch(currentRoom.name, cost, l.type));
+				return;
+			}
+			
+			if(!flagged.containsKey(l.toRoomName)) searchPrioriryLiftExtend(graph.getRoom(l.toRoomName), l, endRoomName);
+		}
+		
 	}
 
 } // MainFrame{} [  END  ]
