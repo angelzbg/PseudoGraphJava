@@ -57,3 +57,4 @@
 401, 404, walk, 6, yes;
 401, 402, walk, 10, yes;
 402, 403, walk, 6, yes;
+202, 201, walk, 5, yes;

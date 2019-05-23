@@ -778,6 +778,8 @@ public class MainFrame extends JFrame {
         	}
 		}
 		
+		if(min_floor < 1) min_floor = 1; // for the sketch logic - to work properly
+		
 		// Links have to be loaded after the rooms, because we don't know if they are writed in the right way in the file.
 		for(Link l: links) {
 			graph.addLink(l.fromRoomName, l.toRoomName, l.type, l.cost, l.isTwoWay);
@@ -895,6 +897,13 @@ public class MainFrame extends JFrame {
 	} // tryToAddLink() [  END  ]
 	
 	private void loadGraphByFloors() { // loadGraphByFloors() [ START ]
+		
+		if(min_floor == 0) {
+			grap_by_floor = new Graph[max_floor];
+		} else {
+			grap_by_floor = new Graph[max_floor+1];
+		}
+		
 		grap_by_floor = new Graph[max_floor+1];
 		
 		Set entries = graph.myGraph.entrySet();
@@ -908,11 +917,20 @@ public class MainFrame extends JFrame {
 			grap_by_floor[room.floor].addRoom(room);
 		}
 		
-		if(JCB_floorChooser.getItemCount() != grap_by_floor.length-1) {
+		if( (JCB_floorChooser.getItemCount() != grap_by_floor.length && min_floor == 0) || (JCB_floorChooser.getItemCount() != grap_by_floor.length-1 && min_floor == 1) ) {
 			// Updating the floorChooser
-			String[] floors = new String[grap_by_floor.length-1];
-			for(int i=0; i<floors.length; i++) {
-				floors[i] = new String( (i+1)+"" );
+			String[] floors = null;
+			
+			if(min_floor == 0) {
+				floors = new String[grap_by_floor.length];
+				for(int i=0; i<floors.length; i++) {
+					floors[i] = new String( i + "" );
+				}
+			} else {
+				floors = new String[grap_by_floor.length-1];
+				for(int i=0; i<floors.length; i++) {
+					floors[i] = new String( (i+1) + "" );
+				}
 			}
 			JCB_floorChooser.setModel(new DefaultComboBoxModel(floors));
 		}
@@ -1109,100 +1127,56 @@ public class MainFrame extends JFrame {
 		Link[] currentLinks = new Link[currentRoom.links.size()];
 		currentLinks = currentRoom.links.toArray(currentLinks);
 		
-        /*Link temp = null;  
-        for(int i=0; i < currentLinks.length; i++) { // TURBO LINK SORT (clumsy bubble sort to sort the linked rooms by coords)
+		Link temp;
+		for(int i=0; i < currentLinks.length; i++) {
         	for(int j=1; j < (currentLinks.length-i); j++) {
         		Room r1 = graph.getRoom(currentLinks[j-1].toRoomName);
         		Room r2 = graph.getRoom(currentLinks[j].toRoomName);
         		
-        		// if the linked room is on the same floor but not on the floor where is the endRoom we must check it's lenght to the current room
-        		// if on the same floor as endRoom -> check lenght to endRoom
-        		// using formula for vector lenght -> same as hypotenuse formula - 1:1
-        		
-        		// we must know the building architecture to make an optimal solution otherwise we must write really complicated code to make this task possible for a random building.
-        		if(r1.floor == endRoom.floor && r2.floor == endRoom.floor) { // the rooms are on the same floor
-        			if( Math.sqrt((endRoom.x-r1.x)*(endRoom.x-r1.x)+(endRoom.y-r1.y)*(endRoom.y-r1.y)) > Math.sqrt((endRoom.x-r2.x)*(endRoom.x-r2.x)+(endRoom.y-r2.y)*(endRoom.y-r2.y)) ) {
-            			temp = currentLinks[j-1];
-            			currentLinks[j-1] = currentLinks[j];
-            			currentLinks[j] = temp;
-            		}
-        		}
-        		else if(r2.floor == endRoom.floor) { // room 2 is on the same room as endRoom
+        		// first we are going to sort the links by choosing the rooms closer to the endRoom
+        		if( Math.sqrt((endRoom.x-r1.x)*(endRoom.x-r1.x)+(endRoom.y-r1.y)*(endRoom.y-r1.y)) > Math.sqrt((endRoom.x-r2.x)*(endRoom.x-r2.x)+(endRoom.y-r2.y)*(endRoom.y-r2.y)) ) {
         			temp = currentLinks[j-1];
         			currentLinks[j-1] = currentLinks[j];
         			currentLinks[j] = temp;
         		}
-        		else if(r1.floor != endRoom.floor) { // both rooms are not on the same floor as endRoom
-        			if(currentRoom.floor > endRoom.floor && r1.floor < currentRoom.floor && r1.floor < r2.floor) {
-        				// stay on this index
-        			}
-        			else if(currentRoom.floor > endRoom.floor && r2.floor < currentRoom.floor && r2.floor < r1.floor) {
-        				temp = currentLinks[j-1];
-            			currentLinks[j-1] = currentLinks[j];
-            			currentLinks[j] = temp;
-        			}
-        			else if(currentRoom.floor < endRoom.floor && r1.floor > currentRoom.floor && r1.floor > r2.floor) {
-        				// stay on this index
-        			}
-        			else if(currentRoom.floor < endRoom.floor && r2.floor > currentRoom.floor && r2.floor > r1.floor) {
-        				temp = currentLinks[j-1];
-            			currentLinks[j-1] = currentLinks[j];
-            			currentLinks[j] = temp;
-        			}
-        			else if(currentRoom.floor > endRoom.floor && r1.floor == currentRoom.floor && r2.floor > currentRoom.floor) {
-        				// stay on this index
-        			}
-        			else if(currentRoom.floor > endRoom.floor && r2.floor == currentRoom.floor && r1.floor > currentRoom.floor) {
-        				temp = currentLinks[j-1];
-            			currentLinks[j-1] = currentLinks[j];
-            			currentLinks[j] = temp;
-        			}
-        			else if(currentRoom.floor < endRoom.floor && r1.floor == currentRoom.floor && r2.floor < currentRoom.floor) {
-        				// stay on this index
-        			}
-        			else if(currentRoom.floor < endRoom.floor && r2.floor == currentRoom.floor && r1.floor < currentRoom.floor) {
-        				temp = currentLinks[j-1];
-            			currentLinks[j-1] = currentLinks[j];
-            			currentLinks[j] = temp;
-        			}
-        			else { // basic sort to the closest room
-        				if( Math.sqrt((currentRoom.x-r1.x)*(currentRoom.x-r1.x)+(currentRoom.y-r1.y)*(currentRoom.y-r1.y)) > Math.sqrt((currentRoom.x-r2.x)*(currentRoom.x-r2.x)+(currentRoom.y-r2.y)*(currentRoom.y-r2.y)) ) {
-                			temp = currentLinks[j-1];
-                			currentLinks[j-1] = currentLinks[j];
-                			currentLinks[j] = temp;
-                		}
-        			}
-        		} // else r1.floor == endRoom.floor -> stay on same indexes
         		
-        	}  
-        }*/
-		
-        Link temp = null;  
-        for(int i=0; i < currentLinks.length; i++) {
-        	if(isPathFound) return;
-        	for(int j=1; j < (currentLinks.length-i); j++) {
-        		Room r1 = graph.getRoom(currentLinks[j-1].toRoomName);
-        		Room r2 = graph.getRoom(currentLinks[j].toRoomName);
-        		
-        		// always searching the closest room -> bs -> makes no sense to work and indeed doesn't -> you CAN NOT find the path with the least rooms visited by choosing the closest
-        		if( Math.sqrt((currentRoom.x-r1.x)*(currentRoom.x-r1.x)+(currentRoom.y-r1.y)*(currentRoom.y-r1.y)) > Math.sqrt((currentRoom.x-r2.x)*(currentRoom.x-r2.x)+(currentRoom.y-r2.y)*(currentRoom.y-r2.y)) ) {
-        			temp = currentLinks[j-1];
-        			currentLinks[j-1] = currentLinks[j];
-        			currentLinks[j] = temp;
-        		}
         	}  
         }
-        
-        for(int i=0; i<currentLinks.length; i++) {
-        	if(isPathFound) return; // little optimization
-        	if(currentLinks[i].toRoomName.equals(endRoom.name)) {
+		
+		// now we are going to put the links that lead to a bad floor for last (ex: we are on 3rd floor and going to 5, but thå link leads to 2nd floor)
+		ArrayList<Link> badLinks = new ArrayList<Link>();
+		
+		for(Link link : currentLinks) {
+			if(isPathFound) return;
+			if(currentRoom.floor >= endRoom.floor && graph.getRoom(link.toRoomName).floor > currentRoom.floor) { // we must be going down or stay here but this link doesnt
+				badLinks.add(link);
+			}
+			else if(currentRoom.floor <= endRoom.floor && graph.getRoom(link.toRoomName).floor < currentRoom.floor) { // we must be going up or stay here but this link doesnt
+				badLinks.add(link);
+			}
+			else { // same floor or  better - moving 1 floor closer to endRoom's floor
+				
+	        	if(link.toRoomName.equals(endRoom.name)) {
+	        		log(" + Observing room [ " + currentRoom.name + " ]", 1);
+					isPathFound = true;
+					comingFrom.put(endRoom.name, link);
+					return;
+				}
+				if(!flagged.containsKey(link.toRoomName)) searchByCoordsExtend(graph.getRoom(link.toRoomName), link, endRoom);
+				
+			}
+		}
+		
+		for(Link link : badLinks) {
+			if(link.toRoomName.equals(endRoom.name)) {
         		log(" + Observing room [ " + currentRoom.name + " ]", 1);
 				isPathFound = true;
-				comingFrom.put(endRoom.name, currentLinks[i]);
+				comingFrom.put(endRoom.name, link);
 				return;
 			}
-			if(!flagged.containsKey(currentLinks[i].toRoomName)) searchByCoordsExtend(graph.getRoom(currentLinks[i].toRoomName), currentLinks[i], endRoom);
-        }
+			if(!flagged.containsKey(link.toRoomName)) searchByCoordsExtend(graph.getRoom(link.toRoomName), link, endRoom);
+		}
+        
 	} // searchByCoordsExtend() [  END  ]
 	
 	private void searchPrioriryLift(String fromRoom, String toRoom) { // searchPrioriryLift() [ START ]
@@ -1210,7 +1184,7 @@ public class MainFrame extends JFrame {
 		
 		Room currentRoom = startRoom;
 		log("@ Searching started [ Prioriry Lift ]", 1);
-		searchPrioriryLiftExtend(currentRoom, null, endRoom.name);
+		searchPrioriryLiftExtend(currentRoom, null, endRoom);
 		
 		if(isPathFound) {
 			log("* There is path from " + startRoom.name + " to " + endRoom.name + ".", 4);
@@ -1259,7 +1233,7 @@ public class MainFrame extends JFrame {
 		isPathFound = false;
 	}// searchPrioriryLift() [  END  ]
 	
-	private void searchPrioriryLiftExtend(Room currentRoom, Link comingFromLink, String endRoomName) { // searchPrioriryLiftExtend() [ START ]
+	private void searchPrioriryLiftExtend(Room currentRoom, Link comingFromLink, Room endRoom) { // searchPrioriryLiftExtend() [ START ]
 		if(isPathFound) return; // not sure if does anything at this point
 		
 		log(" + Observing room [ " + currentRoom.name + " ]", 1);
@@ -1268,39 +1242,66 @@ public class MainFrame extends JFrame {
 		flagged.put(currentRoom.name, true);
 		
 		ArrayList<Link> links = new ArrayList<Link>();
-		for(Link l : currentRoom.links) { // ordering the links -> lifts
-			if(l.type.equals("lift")) {
-				links.add(0, l); // going first in the list
-			} else links.add(l); // adding it behind
+		for(Link link : currentRoom.links) { // ordering the links
+			
+			if( (currentRoom.floor > endRoom.floor && graph.getRoom(link.toRoomName).floor < currentRoom.floor) || (currentRoom.floor < endRoom.floor && graph.getRoom(link.toRoomName).floor > currentRoom.floor) ) { // if going in the right direction with lift or stairs
+				links.add(0, link); // going first in the list
+			}
+			else if(currentRoom.floor == endRoom.floor && graph.getRoom(link.toRoomName).floor == currentRoom.floor) {
+				links.add(0, link); // going first in the list
+			}
+			else links.add(link); // adding it behind
+
 		}
-		// TO DO
-		// Actually this sorting is useless since the links with type climb are being placed in a second ArrayList -> !!! [ FIX THIS ] !!!
 		
 		ArrayList<Link> skippedStairs = new ArrayList<Link>();
 		for(Link l : links) {
 			if(isPathFound) return;
 			
-			if(l.toRoomName.equals(endRoomName)) {
+			if(l.toRoomName.equals(endRoom.name)) {
 				log(" + Observing room [ " + currentRoom.name + " ]", 1);
 				isPathFound = true;
-				comingFrom.put(endRoomName, l);
+				comingFrom.put(endRoom.name, l);
 				return;
 			}
 			
-			if(l.type.equals("climb")) skippedStairs.add(l); // we leave the stairs always for last (last resort)
-			else if(!flagged.containsKey(l.toRoomName)) searchPrioriryLiftExtend(graph.getRoom(l.toRoomName), l, endRoomName);
+			if(l.type.equals("climb")) skippedStairs.add(l); // we leave the stairs always for last
+			else if(!flagged.containsKey(l.toRoomName)) searchPrioriryLiftExtend(graph.getRoom(l.toRoomName), l, endRoom);
 		}
 		
-		for(Link l: skippedStairs) {
-			if(isPathFound) return;
-			if(l.toRoomName.equals(endRoomName)) {
-				log(" + Observing room [ " + currentRoom.name + " ]", 1);
-				isPathFound = true;
-				comingFrom.put(endRoomName, l);
-				return;
+		// if there are lifts on the floor and we can use them to go in the right direction just return and don't use these links (ex: we are going to 5th floor and rn are on the 3rd and all the lifts can go only down we should use the climb links)
+		boolean isThereGoodLift = false;
+		Set entries = grap_by_floor[currentRoom.floor].myGraph.entrySet();
+		Iterator entriesIterator = entries.iterator();
+		Map.Entry mapping;
+		while(entriesIterator.hasNext()){
+			mapping = (Map.Entry) entriesIterator.next();
+			Room room = (Room) mapping.getValue();
+			if(room.type.equals("transit")) {
+				for(Link link : room.links) {
+					if(link.type.equals("lift")) {
+						
+						if( (room.floor > endRoom.floor && graph.getRoom(link.toRoomName).floor < room.floor) || (room.floor < endRoom.floor && graph.getRoom(link.toRoomName).floor > room.floor) ) {
+							isThereGoodLift = true;
+						}
+						
+					}
+				}
 			}
-			
-			if(!flagged.containsKey(l.toRoomName)) searchPrioriryLiftExtend(graph.getRoom(l.toRoomName), l, endRoomName);
+		}
+		
+		if(!isThereGoodLift) { // if we couldn't find a good lift we just use the stairs
+			for(Link l: skippedStairs) {
+				if(isPathFound) return;
+				if(l.toRoomName.equals(endRoom.name)) {
+					log(" + Observing room [ " + currentRoom.name + " ]", 1);
+					isPathFound = true;
+					comingFrom.put(endRoom.name, l);
+					return;
+				}
+				
+				if(!flagged.containsKey(l.toRoomName)) searchPrioriryLiftExtend(graph.getRoom(l.toRoomName), l, endRoom);
+			}
 		}
 		
 	} // searchPrioriryLiftExtend() [  END  ]
@@ -1308,6 +1309,11 @@ public class MainFrame extends JFrame {
 	private void updateSketch(int chosenFloor) { // updateSketch() [ START ]
 		panelSketch.removeAll();
 		loadGraphByFloors();
+		
+		if(grap_by_floor[chosenFloor] == null) {
+			log("! Floor ( " + chosenFloor + " ) doesn't exist. Failed to load.", 2);
+			return;
+		}
 		
 		ArrayList<Room> roomsOnFloor = new ArrayList<Room>();
 		int max_X = Integer.MIN_VALUE, max_Y = Integer.MIN_VALUE;
