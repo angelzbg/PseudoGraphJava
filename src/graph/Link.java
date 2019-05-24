@@ -2,13 +2,13 @@ package graph;
 
 public class Link {
 	
-	public String fromRoomName, toRoomName, type;
+	public String fromRoom, toRoom, type;
 	public int cost;
 	public boolean isTwoWay;
 	
-	public Link(String fromRoomName, String toRoomName, String type, int cost, boolean isTwoWay) {
-		this.fromRoomName = fromRoomName;
-		this.toRoomName = toRoomName;
+	public Link(String fromRoom, String toRoom, String type, int cost, boolean isTwoWay) {
+		this.fromRoom = fromRoom;
+		this.toRoom = toRoom;
 		this.type = type;
 		this.cost = cost;
 		this.isTwoWay = isTwoWay;
