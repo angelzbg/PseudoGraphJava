@@ -589,7 +589,7 @@ public class MainFrame extends JFrame {
 
     			if (returnValue == JFileChooser.APPROVE_OPTION) {
     				File selectedFile = jfc.getSelectedFile();
-    				MainFrame.this.openData(selectedFile.getAbsolutePath());
+    				openData(selectedFile.getAbsolutePath());
     			}
     		}
         }
@@ -646,7 +646,7 @@ public class MainFrame extends JFrame {
     			}
     		}
     		else if(labelGoToFloor == source) {
-    			MainFrame.this.updateSketch(Integer.parseInt(JCB_floorChooser.getSelectedItem().toString()));
+    			updateSketch(Integer.parseInt(JCB_floorChooser.getSelectedItem().toString()));
     		}
         }
     	@Override
@@ -716,7 +716,7 @@ public class MainFrame extends JFrame {
 			fileLabel.addMouseListener(new MouseAdapter() {
 				@Override
 		        public void mouseClicked(MouseEvent e) {
-					MainFrame.this.openData(pathToFile);
+					openData(pathToFile);
 		        }
 		    	@Override
 		        public void mouseEntered(MouseEvent e) {
