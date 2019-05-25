@@ -8,7 +8,6 @@ import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
 import java.awt.GridLayout;
 import java.awt.Image;
-import java.awt.Point;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
@@ -61,59 +60,59 @@ public class MainFrame extends JFrame {
 	
 	/* --------------- Components [ START ] */
 	// Wrapper
-	JPanel panelWrapper = new JPanel();
+	private JPanel panelWrapper = new JPanel();
 	
 	// Sketch Panel
-	JPanel panelSketch = new JPanel();
+	private JPanel panelSketch = new JPanel();
 	
 	// JLabels to open the menus
-	JLabel labelOpenLeftMenu, labelOpenTopMenu, labelOpenConsole, labelOpenSettings, labelOpenTable;
+	private JLabel labelOpenLeftMenu, labelOpenTopMenu, labelOpenConsole, labelOpenSettings, labelOpenTable;
 	
 	// components for the file menu
-	JPanel panelFileMenu = new JPanel(), panelFileMenu_Nav = new JPanel(), panelFileMenu_Body = new JPanel();
-	JLabel labelFileMenu_Back, labelFileMenu_Open;
-	JPanel panelFileMenu_Container = new JPanel();
-	JScrollPane JSP_ScrollerContainer = new JScrollPane(panelFileMenu_Container);
+	private JPanel panelFileMenu = new JPanel(), panelFileMenu_Nav = new JPanel(), panelFileMenu_Body = new JPanel();
+	private JLabel labelFileMenu_Back, labelFileMenu_Open;
+	private JPanel panelFileMenu_Container = new JPanel();
+	private JScrollPane JSP_ScrollerContainer = new JScrollPane(panelFileMenu_Container);
 	
 	// components for the top menu
-	JPanel panelTopMenuWrap = new JPanel();
-	JLabel labelTopMenu_Back;
+	private JPanel panelTopMenuWrap = new JPanel();
+	private JLabel labelTopMenu_Back;
 	// ---> components for panelTopMenuChoices
-	JPanel panelTopMenuChoices = new JPanel();
-	JLabel labelChoice_AddRoom, labelChoice_AddLink, labelChoice_Search;
+	private JPanel panelTopMenuChoices = new JPanel();
+	private JLabel labelChoice_AddRoom, labelChoice_AddLink, labelChoice_Search;
 	// ---> components for panelAddRoom
-	JPanel panelAddRoom = new JPanel();
-	JTextField JTF_addRoom_Name = new JTextField(), JTF_addRoom_X, JTF_addRoom_Y, JTF_addRoom_Floor;
-	JComboBox JCB_addRoom_Type = new JComboBox(new String[] {"room", "transit"});
-	JLabel labelAddRoom;
+	private JPanel panelAddRoom = new JPanel();
+	private JTextField JTF_addRoom_Name = new JTextField(), JTF_addRoom_X, JTF_addRoom_Y, JTF_addRoom_Floor;
+	private JComboBox JCB_addRoom_Type = new JComboBox(new String[] {"room", "transit"});
+	private JLabel labelAddRoom;
 	// ---> components for panelAddLink
-	JPanel panelAddLink = new JPanel();
-	JTextField JTF_addLink_From = new JTextField(), JTF_addLink_To = new JTextField(),  JTF_addLink_Cost;
-	JComboBox JCB_addLink_Type = new JComboBox(new String[]{ "walk", "climb", "lift" });
-	JComboBox JCB_addLink_Way = new JComboBox(new String[]{ "two-way", "one-way" });
-	JLabel labelAddLink;
+	private JPanel panelAddLink = new JPanel();
+	private JTextField JTF_addLink_From = new JTextField(), JTF_addLink_To = new JTextField(),  JTF_addLink_Cost;
+	private JComboBox JCB_addLink_Type = new JComboBox(new String[]{ "walk", "climb", "lift" });
+	private JComboBox JCB_addLink_Way = new JComboBox(new String[]{ "two-way", "one-way" });
+	private JLabel labelAddLink;
 	// ---> components for panelSearchPath
-	JPanel panelSearch = new JPanel();
-	JTextField JTF_searchFrom = new JTextField(), JTF_searchTo = new JTextField();
-	JComboBox JCB_searchType = new JComboBox(new String[]{ "no stairs", "by coords", "lifts prior" });
-	JLabel labelSearch;
+	private JPanel panelSearch = new JPanel();
+	private JTextField JTF_searchFrom = new JTextField(), JTF_searchTo = new JTextField();
+	private JComboBox JCB_searchType = new JComboBox(new String[]{ "no stairs", "by coords", "lifts prior" });
+	private JLabel labelSearch;
 	
 	// components for panelConsoleWrap
-	JPanel panelConsoleWrap = new JPanel();
-	JLabel labelConsoleBack;
-	JTextPane JTA_Console = new JTextPane();
-	JScrollPane JSP_ScrollerConsole = new JScrollPane(JTA_Console);
+	private JPanel panelConsoleWrap = new JPanel();
+	private JLabel labelConsoleBack;
+	private JTextPane JTA_Console = new JTextPane();
+	private JScrollPane JSP_ScrollerConsole = new JScrollPane(JTA_Console);
 	
 	// components for panelTableWrap
-	JPanel panelTableWrap = new JPanel();
-	JTable JT_Table = new JTable();
-	JScrollPane JSP_ScrollerTable = new JScrollPane(JT_Table);
-	JLabel labelTableBack, labelShowRoomsInTable, labelShowLinksInTable;
+	private JPanel panelTableWrap = new JPanel();
+	private JTable JT_Table = new JTable();
+	private JScrollPane JSP_ScrollerTable = new JScrollPane(JT_Table);
+	private JLabel labelTableBack, labelShowRoomsInTable, labelShowLinksInTable;
 	
 	//components for panelSettingsWrap
-	JPanel panelSettingsWrap = new JPanel();
-	JComboBox JCB_floorChooser = new JComboBox(new String[] {"0", "1", "2"});
-	JLabel labelGoToFloor, labelSettingsBack;
+	private JPanel panelSettingsWrap = new JPanel();
+	private JComboBox JCB_floorChooser = new JComboBox(new String[] {"0", "1", "2"});
+	private JLabel labelGoToFloor, labelSettingsBack;
 	
 	/* --------------- Components [  END  ] */
 	
@@ -132,14 +131,14 @@ public class MainFrame extends JFrame {
 			blueDarker2 = Color.decode("#588bc2");
 	
 	// Graph
-	Graph graph = new Graph();
-	Graph[] grap_by_floor;
+	private Graph graph = new Graph();
+	private Graph[] grap_by_floor;
 	
 	/* ----- For the Logic ----- */
 	private int max_floor = Integer.MIN_VALUE, min_floor = Integer.MAX_VALUE;
 	private String file_path; // the path of the current(last loaded) file
-	HashMap<String, Boolean> flagged = new HashMap<String, Boolean>(); // instead of flagging and deflagging the whole map
-	HashMap<String, Link> comingFrom = new HashMap<String, Link>(); // saving the link between the current room in the searching and where it came from (this way we can put together the path in reverse order if we find one)
+	private HashMap<String, Boolean> flagged = new HashMap<String, Boolean>(); // instead of flagging and deflagging the whole map
+	private HashMap<String, Link> comingFrom = new HashMap<String, Link>(); // saving the link between the current room in the searching and where it came from (this way we can put together the path in reverse order if we find one)
 	boolean isPath = false;
 	
 	public MainFrame() { // Constructor [ START ]
@@ -158,7 +157,6 @@ public class MainFrame extends JFrame {
 		formatterInteger.setMaximum(Integer.MAX_VALUE);
 		formatterInteger.setAllowsInvalid(false);
 		formatterInteger.setCommitsOnValidEdit(true);
-		
 		
 		this.setLayout(new BorderLayout());
 		
@@ -458,9 +456,9 @@ public class MainFrame extends JFrame {
 			    if(PromptResult==0) System.exit(0); // if the user chose Confirm the program will close    
 			}
 		});
-		fixThisTrashSwing();
+		this.fixThisTrashSwing();
 		
-		// ----- ActionListeners
+		// ----- ActionListeners (actually rn using MouseAdapters)
 		labelOpenLeftMenu.addMouseListener(mouseAdapter_Open_Close_Menus);
 		labelFileMenu_Back.addMouseListener(mouseAdapter_Open_Close_Menus);
 		labelOpenTopMenu.addMouseListener(mouseAdapter_Open_Close_Menus);
@@ -483,7 +481,7 @@ public class MainFrame extends JFrame {
 		labelSearch.addMouseListener(mouseAdapter_Confirm);
 		labelGoToFloor.addMouseListener(mouseAdapter_Confirm);
 		
-		openData("src/example.blegh");
+		this.openData("src/example.blegh");
 	} // Constructor [  END  ]
 	
 	private void fixThisTrashSwing() {
@@ -591,19 +589,19 @@ public class MainFrame extends JFrame {
 
     			if (returnValue == JFileChooser.APPROVE_OPTION) {
     				File selectedFile = jfc.getSelectedFile();
-    				openData(selectedFile.getAbsolutePath());
+    				MainFrame.this.openData(selectedFile.getAbsolutePath());
     			}
     		}
         }
     	@Override
         public void mouseEntered(MouseEvent e) {
             super.mouseEntered(e);
-            Object source = e.getSource();
+            //Object source = e.getSource(); // wont make mouse hover effects for now
         }
         @Override
         public void mouseExited(MouseEvent e) {
             super.mouseExited(e); 
-            Object source = e.getSource();
+            //Object source = e.getSource(); // same
         }
 	};
 	
@@ -648,7 +646,7 @@ public class MainFrame extends JFrame {
     			}
     		}
     		else if(labelGoToFloor == source) {
-    			updateSketch(Integer.parseInt(JCB_floorChooser.getSelectedItem().toString()));
+    			MainFrame.this.updateSketch(Integer.parseInt(JCB_floorChooser.getSelectedItem().toString()));
     		}
         }
     	@Override
@@ -718,7 +716,7 @@ public class MainFrame extends JFrame {
 			fileLabel.addMouseListener(new MouseAdapter() {
 				@Override
 		        public void mouseClicked(MouseEvent e) {
-					openData(pathToFile);
+					MainFrame.this.openData(pathToFile);
 		        }
 		    	@Override
 		        public void mouseEntered(MouseEvent e) {
@@ -782,8 +780,6 @@ public class MainFrame extends JFrame {
         	}
 		}
 		
-		if(min_floor < 1) min_floor = 1; // for the sketch logic - to work properly
-		
 		// Links have to be loaded after the rooms, because we don't know if they are writed in the right way in the file.
 		for(Link l: links) {
 			graph.addLink(l.fromRoom, l.toRoom, l.type, l.cost, l.isTwoWay);
@@ -791,14 +787,15 @@ public class MainFrame extends JFrame {
 		
 		log("* Loaded: " + pathToFile, 3);
 		
-		updateTableWithRooms();
-		loadGraphByFloors();
+		this.updateTableWithRooms();
+		this.loadGraphByFloors();
 		this.setTitle(pathToFile);
-		updateSketch(min_floor);
+		this.updateSketch(min_floor);
 	} // openData() [  END  ]
 	
-	private void log(String log, int color) { // log() [ START ]
+	public void log(String log, int color) { // log() [ START ]
 		
+		// must put these as private properties, also the doc
 		SimpleAttributeSet red = new SimpleAttributeSet();
 		StyleConstants.setForeground(red, Color.decode("#e04a3a"));
 		SimpleAttributeSet white = new SimpleAttributeSet();
@@ -862,8 +859,8 @@ public class MainFrame extends JFrame {
 			if(current_floor > max_floor) max_floor = current_floor;
 			if(current_floor < min_floor) min_floor = current_floor;
 			log("* Room added successfully [ " + roomName + " ].", 3);
-			updateTableWithRooms();
-			updateSketch(current_floor);
+			this.updateTableWithRooms();
+			this.updateSketch(current_floor);
 		}
 	} // tryToAddRoom() [  END  ]
 	
@@ -896,7 +893,7 @@ public class MainFrame extends JFrame {
 		    	log(e.getMessage(), 2);
 		    }
 			log("* Link added [ " + roomNameFrom + " to " + roomNameTo + " ].", 3);
-			updateTableWithLinks();
+			this.updateTableWithLinks();
 		}
 	} // tryToAddLink() [  END  ]
 	
@@ -961,8 +958,8 @@ public class MainFrame extends JFrame {
 		}
 		
 		JT_Table.setModel(new DefaultTableModel(data, new String[] {"# Room", "X", "Y", "# Floor", "Type"}));
-		MainFrame.this.revalidate();
-		MainFrame.this.repaint();
+		this.revalidate();
+		this.repaint();
 	}
 	private void updateTableWithLinks() {
 		Set entries = graph.myGraph.entrySet();
@@ -970,7 +967,6 @@ public class MainFrame extends JFrame {
 			
 		ArrayList<Link> allLinks = new ArrayList<>();
 			
-		int i = 0;
 		Map.Entry mapping;
 		while(entriesIterator.hasNext()){
 			mapping = (Map.Entry) entriesIterator.next();
@@ -978,7 +974,6 @@ public class MainFrame extends JFrame {
 			for(Link l : room.links) {
 				allLinks.add(l);
 			}
-			i++;
 		}
 		
 		Object[][] data = new Object[allLinks.size()][5];
@@ -994,8 +989,8 @@ public class MainFrame extends JFrame {
 		}
 			
 		JT_Table.setModel(new DefaultTableModel(data, new String[] {"From # Room", "To # Room", "Type", "Cost", "Two-way?"}));
-		MainFrame.this.revalidate();
-		MainFrame.this.repaint();
+		this.revalidate();
+		this.repaint();
 	}
 	/* TABLE UPDATES [  END  ] */
 	
@@ -1015,9 +1010,9 @@ public class MainFrame extends JFrame {
 		log("@ Search finished [ Without Stairs ]", 1);
 		
 		//Cleaning the current search
-		flagged = new HashMap<String, Boolean>();
-		comingFrom = new HashMap<String, Link>();
-		isPath = false;
+		this.flagged = new HashMap<String, Boolean>();
+		this.comingFrom = new HashMap<String, Link>();
+		this.isPath = false;
 		
 	} // searchWithoutStairs() [  END  ]
 	
@@ -1059,9 +1054,9 @@ public class MainFrame extends JFrame {
 		log("@ Search finished [ By Coords ]", 1);
 		
 		// Clear the current search
-		flagged = new HashMap<String, Boolean>();
-		comingFrom = new HashMap<String, Link>();
-		isPath = false;
+		this.flagged = new HashMap<String, Boolean>();
+		this.comingFrom = new HashMap<String, Link>();
+		this.isPath = false;
 	} // searchByCoords [  END  ]
 	
 	private void searchByCoordsExtend(Room currentRoom, Link comingFromLink, Room endRoom) { // searchByCoordsExtend() [ START ]
@@ -1142,9 +1137,9 @@ public class MainFrame extends JFrame {
 		log("@ Search finished [ Prioriry Lift ]", 1);;
 		
 		// Clear the current search
-		flagged = new HashMap<String, Boolean>();
-		comingFrom = new HashMap<String, Link>();
-		isPath = false;
+		this.flagged = new HashMap<String, Boolean>();
+		this.comingFrom = new HashMap<String, Link>();
+		this.isPath = false;
 	}// searchPrioriryLift() [  END  ]
 	
 	private void searchPrioriryLiftExtend(Room currentRoom, Link comingFromLink, Room endRoom) { // searchPrioriryLiftExtend() [ START ]
@@ -1239,7 +1234,9 @@ public class MainFrame extends JFrame {
 				climb++;
 				if(isLiftPriority) cost*=2;
 			}
-			else lift++;
+			else if(linkSearch.type.equals("lift")) {
+				lift++;
+			}
 			costs.add(cost);
 			costCounter+=cost;
 			name = linkSearch.fromRoom;
@@ -1282,7 +1279,7 @@ public class MainFrame extends JFrame {
 		}
 		
 		double scale = 0;
-		int fixedSide = side-side_div_15*4;
+		int fixedSide = side-side_div_15*4; // we don't need the icons of the room to go outside of the component
 		
 		if(fixedSide > max_X || fixedSide > max_Y) {
 			
@@ -1301,8 +1298,6 @@ public class MainFrame extends JFrame {
 			}
 			
 		}
-		
-		
 		
 		for(Room r : roomsOnFloor) {
 			JLabel labelRoom = null;

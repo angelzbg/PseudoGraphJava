@@ -1,11 +1,10 @@
 package graph;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Graph {
 
-public HashMap<String, Room> myGraph = new HashMap<>();
+	public HashMap<String, Room> myGraph = new HashMap<>();
 	
 	public String addRoom(Room room) {
 		if(room == null || myGraph.containsKey(room.name)) {
