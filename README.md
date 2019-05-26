@@ -27,3 +27,13 @@
 #ВАЖНО:
 Предаването на проекта става 8ма седмица от триместъра (30.05.2019) по време на упражненията.<br>
 Проекта се предава лично, като се демонстрират функционалностите на програмата и при нужда се обяснява програмната структура.
+
+<h3>MY SOURCES</h3>
+https://docs.oracle.com/javase/tutorial/uiswing/components/table.html<br>
+http://www.java2s.com/Tutorials/Java/Swing/JButton/Get_JButton_action_source_in_Java.htm<br>
+https://docs.oracle.com/javase/tutorial/uiswing/components/filechooser.html<br>
+https://stackoverflow.com/questions/47139194/how-to-display-a-message-next-to-the-mouse-when-on-mousepressed-event-in-swing<br>
+https://docs.oracle.com/javase/7/docs/api/java/util/Scanner.html<br>
+https://www.geeksforgeeks.org/different-ways-reading-text-file-java/<br>
+http://www.java2s.com/Code/JavaAPI/javax.swing.text/DocumentinsertStringintoffsetStringstrAttributeSeta.htm<br>
+https://docs.oracle.com/javase/tutorial/uiswing/components/combobox.html
